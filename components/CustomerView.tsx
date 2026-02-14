@@ -27,6 +27,12 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onSubmit, isAccepting }) =>
     );
   }
 
+  const preferences: { value: SeatPreference; label: string }[] = [
+    { value: 'any', label: 'どちらでも' },
+    { value: 'table', label: 'テーブル' },
+    { value: 'counter', label: '座敷' } // 元のコードの「座敷」をcounterとして扱います
+  ];
+
   return (
     <div className="bg-white p-6 rounded-2xl shadow-xl">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
@@ -35,7 +41,6 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onSubmit, isAccepting }) =>
       </h2>
       
       <div className="space-y-6">
-        {/* 人数入力 */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <label className="block text-sm font-medium text-gray-500 mb-2">大人</label>
@@ -63,19 +68,18 @@ const CustomerView: React.FC<CustomerViewProps> = ({ onSubmit, isAccepting }) =>
           </div>
         </div>
 
-        {/* 座席希望 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">ご希望のお席</label>
           <div className="grid grid-cols-3 gap-3">
-            {(['any', 'table', 'counter'] as SeatPreference[]).map((p) => (
+            {preferences.map((p) => (
               <button
-                key={p}
-                onClick={() => setPref(p)}
+                key={p.value}
+                onClick={() => setPref(p.value)}
                 className={`py-3 px-2 rounded-xl border-2 font-medium transition-all ${
-                  pref === p ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-100 bg-gray-50 text-gray-500'
+                  pref === p.value ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-100 bg-gray-50 text-gray-500'
                 }`}
               >
-                {p === 'any' ? 'どちらでも' : p === 'table' ? 'テーブル' : '座敷'}
+                {p.label}
               </button>
             ))}
           </div>
