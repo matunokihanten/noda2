@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQueueSystem } from './hooks/useQueueSystem';
-import { CustomerView } from './components/CustomerView';
-import { AdminView } from './components/AdminView';
-import { Layout } from './components/Layout';
+// { } を外してインポートします
+import CustomerView from './components/CustomerView';
+import AdminView from './components/AdminView';
 import { Users, LayoutDashboard, UtensilsCrossed } from 'lucide-react';
 
 function App() {
@@ -17,15 +17,15 @@ function App() {
   } = useQueueSystem();
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-gray-50">
       {/* ナビゲーション */}
-      <nav className="bg-white border-b mb-6">
+      <nav className="bg-white border-b mb-6 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between h-16">
             <div className="flex space-x-8">
               <button
                 onClick={() => setActiveTab('customer')}
-                className={`flex items-center px-3 border-b-2 text-sm font-medium ${
+                className={`flex items-center px-3 border-b-2 text-sm font-medium transition-colors ${
                   activeTab === 'customer'
                     ? 'border-red-500 text-red-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -36,7 +36,7 @@ function App() {
               </button>
               <button
                 onClick={() => setActiveTab('admin')}
-                className={`flex items-center px-3 border-b-2 text-sm font-medium ${
+                className={`flex items-center px-3 border-b-2 text-sm font-medium transition-colors ${
                   activeTab === 'admin'
                     ? 'border-red-500 text-red-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -58,7 +58,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 pb-12">
         {activeTab === 'customer' ? (
           <CustomerView 
-            onSubmit={async (data) => {
+            onSubmit={async (data: any) => {
               await registerGuest(data);
             }} 
             isAccepting={state.isAccepting} 
@@ -75,7 +75,7 @@ function App() {
           />
         )}
       </main>
-    </Layout>
+    </div>
   );
 }
 
