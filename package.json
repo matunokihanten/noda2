@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --allowed-hosts all",
-    "start": "vite preview --host 0.0.0.0 --port $PORT --allowed-hosts all"
+    "preview": "vite preview --host 0.0.0.0",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
     "react-dom": "^19.2.4",
