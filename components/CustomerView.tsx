@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppState, Guest, SeatPreference } from '../types';
-import SeatSelector from './SeatSelector';
 import { playCallSound } from '../utils/audio';
 
 interface CustomerViewProps {
@@ -17,16 +15,13 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
   const [myNumber, setMyNumber] = useState<string | null>(() => localStorage.getItem('my_number_display_id'));
 
   useEffect(() => {
-    // 自分の番号がある場合、それがキュー内に存在するか確認
     if (myNumber) {
       const exists = state.queue.find(g => g.displayId === myNumber);
       if (!exists) {
-        // リセット後や案内終了後はクリア
+        // 案内終了後はクリア
         setMyNumber(null);
         localStorage.removeItem('my_number_display_id');
       } else if (exists.called) {
-        // 呼び出し音を鳴らす（ブラウザ制限で初動ユーザー操作が必要）
-        // 実際の実装ではユーザーが一度どこかタップした後に有効
         try {
             playCallSound();
         } catch(e) {}
@@ -36,19 +31,31 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
 
   const handleRegister = () => {
     if (!state.isAccepting) return;
-    const g = onRegister({ type: 'web', adults, children, infants, pref });
+    
+    // 登録実行
+    const g = onRegister({ 
+      type: 'web', 
+      adults, 
+      children, 
+      infants, 
+      pref // ここに「お座敷」などの情報が入ります
+    });
+
     setMyNumber(g.displayId);
     localStorage.setItem('my_number_display_id', g.displayId);
+    
+    // 【重要】店側画面と同期させるため、全データを一旦ローカルストレージに保存（簡易同期）
+    localStorage.setItem('matsunoki_queue_data', JSON.stringify([...state.queue, g]));
   };
 
   const handleCancel = () => {
     if (confirm('順番待ちをキャンセルしますか？')) {
       setMyNumber(null);
       localStorage.removeItem('my_number_display_id');
-      // ここで本来はサーバー側に削除リクエストを送る
     }
   };
 
+  // 受付済み画面（チケット画面）
   if (myNumber) {
     const myGuest = state.queue.find(g => g.displayId === myNumber);
     const pos = state.queue.findIndex(g => g.displayId === myNumber) + 1;
@@ -57,10 +64,10 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
       <div className="min-h-screen bg-red-900 text-white p-6 flex flex-col items-center justify-center text-center">
         <div className="bg-white text-gray-900 w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-in fade-in zoom-in duration-500">
           <p className="font-bold text-red-800 text-lg mb-2">松乃木飯店 順番待ちチケット</p>
-          <p className="text-gray-400 text-xs font-bold mb-4">ブラウザを閉じても番号は保存されます</p>
+          <p className="text-gray-400 text-xs font-bold mb-4">ブラウザを閉じても番号は保持されます</p>
           
           <div className="bg-red-50 border-2 border-red-100 rounded-3xl py-10 my-6 relative overflow-hidden">
-             <div className="text-gray-500 font-black text-xs uppercase tracking-widest mb-2">現在の受付番号</div>
+             <div className="text-gray-500 font-black text-xs uppercase tracking-widest mb-2">あなたの受付番号</div>
              <div className="text-8xl font-black text-red-900">{myNumber}</div>
              {myGuest?.called && (
                 <div className="absolute top-2 right-2 rotate-12 bg-orange-500 text-white text-[10px] font-black px-2 py-1 rounded animate-bounce shadow-lg">
@@ -72,29 +79,29 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-2xl">
               <p className="text-xs text-gray-400 font-bold mb-1">現在の待ち順</p>
-              <p className="text-3xl font-black text-gray-800">あと <span className="text-red-600 text-4xl">{pos}</span> 組</p>
+              <p className="text-3xl font-black text-gray-800">あと <span className="text-red-600 text-4xl">{pos > 0 ? pos : '確認中'}</span> 組</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-gray-50 p-4 rounded-2xl text-left">
                 <p className="text-xs text-gray-400 font-bold mb-1">人数</p>
-                <p className="font-bold text-sm">大{myGuest?.adults} 子{myGuest?.children} 幼{myGuest?.infants}</p>
+                <p className="font-bold text-sm">大人{myGuest?.adults || adults} 子{myGuest?.children || children}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-2xl text-left">
                 <p className="text-xs text-gray-400 font-bold mb-1">ご希望</p>
-                <p className="font-bold text-sm">{myGuest?.pref}</p>
+                <p className="font-bold text-sm text-red-700">{myGuest?.pref || pref}</p>
               </div>
             </div>
           </div>
 
           {myGuest?.called ? (
             <div className="mt-8 p-6 bg-orange-500 text-white rounded-3xl font-black text-xl animate-pulse shadow-lg">
-                お席が用意できました！<br/>店舗へお入りください
+                お席の準備ができました！<br/>スタッフにお声がけください
             </div>
           ) : (
             <div className="mt-8 text-gray-400 text-sm font-bold flex flex-col gap-4">
-                <p>順番が近づきましたら<br/>店内のスタッフにお伝えください</p>
-                <button onClick={handleCancel} className="text-red-300 hover:text-red-500">
+                <p>順番が近づきましたら通知します。<br/>店外でお待ちいただけます。</p>
+                <button onClick={handleCancel} className="text-red-300 hover:text-red-500 text-xs underline">
                     受付をキャンセルする
                 </button>
             </div>
@@ -104,6 +111,7 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
     );
   }
 
+  // 入力フォーム画面
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-red-900 text-white p-6 text-center shadow-md">
@@ -122,7 +130,7 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
 
           {!state.isAccepting && (
             <div className="bg-red-100 text-red-700 p-4 rounded-2xl font-bold text-center mb-6">
-              現在、店頭が大変混み合っているため<br/>オンライン受付を一時停止しています。
+              ただいまオンライン受付を停止中です。
             </div>
           )}
 
@@ -133,10 +141,26 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
                <CounterCompact label="幼児" value={infants} onChange={setInfants} icon="fa-baby" />
             </div>
 
+            {/* --- 座席希望ボタンを追加したエリア --- */}
             <div>
-                <label className="block text-sm font-bold text-gray-500 mb-2">🪑 座席のご希望</label>
-                <SeatSelector value={pref} onChange={setPref} />
+                <label className="block text-sm font-bold text-gray-500 mb-3 ml-1">🪑 座席のご希望</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['どこでも', 'テーブル', 'お座敷'] as SeatPreference[]).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setPref(option)}
+                      className={`py-3 rounded-xl font-bold text-sm border-2 transition-all ${
+                        pref === option 
+                        ? 'border-red-800 bg-red-50 text-red-800 shadow-inner' 
+                        : 'border-gray-100 bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
             </div>
+            {/* ---------------------------------- */}
 
             <button
               onClick={handleRegister}
@@ -158,25 +182,16 @@ const CustomerView: React.FC<CustomerViewProps> = ({ state, onRegister }) => {
   );
 };
 
+// ... Counter と CounterCompact コンポーネントはそのまま ...
 const Counter: React.FC<{ label: string; value: number; onChange: (v: number) => void; min?: number; icon: string }> = ({ label, value, onChange, min = 0, icon }) => (
   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
     <div className="flex items-center gap-2 mb-3 text-gray-700 font-bold text-sm">
       <i className={`fa-solid ${icon}`}></i> {label}
     </div>
     <div className="flex items-center justify-between">
-      <button 
-        onClick={() => onChange(Math.max(min, value - 1))}
-        className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-xl font-black text-gray-400 shadow-sm"
-      >
-        <i className="fa-solid fa-minus"></i>
-      </button>
+      <button onClick={() => onChange(Math.max(min, value - 1))} className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-xl font-black text-gray-400 shadow-sm"> - </button>
       <span className="text-3xl font-black text-red-900">{value}</span>
-      <button 
-        onClick={() => onChange(value + 1)}
-        className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-xl font-black text-gray-400 shadow-sm"
-      >
-        <i className="fa-solid fa-plus"></i>
-      </button>
+      <button onClick={() => onChange(value + 1)} className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-xl font-black text-gray-400 shadow-sm"> + </button>
     </div>
   </div>
 );
@@ -187,13 +202,9 @@ const CounterCompact: React.FC<{ label: string; value: number; onChange: (v: num
         <i className={`fa-solid ${icon}`}></i> {label}
       </div>
       <div className="flex items-center justify-between">
-        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-xs font-black text-gray-400 shadow-sm">
-          -
-        </button>
+        <button onClick={() => onChange(Math.max(0, value - 1))} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-xs font-black text-gray-400 shadow-sm">-</button>
         <span className="text-xl font-black text-red-900">{value}</span>
-        <button onClick={() => onChange(value + 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-xs font-black text-gray-400 shadow-sm">
-          +
-        </button>
+        <button onClick={() => onChange(value + 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-xs font-black text-gray-400 shadow-sm">+</button>
       </div>
     </div>
 );
