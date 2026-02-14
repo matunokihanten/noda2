@@ -1,34 +1,32 @@
+
 import React from 'react';
 import { SeatPreference } from '../types';
 
 interface SeatSelectorProps {
   value: SeatPreference;
-  onChange: (value: SeatPreference) => void;
+  onChange: (val: SeatPreference) => void;
 }
 
-export const SeatSelector: React.FC<SeatSelectorProps> = ({ value, onChange }) => {
-  const options: { value: SeatPreference; label: string }[] = [
-    { value: 'any', label: 'どこでも' },
-    { value: 'table', label: 'テーブル' },
-    { value: 'counter', label: 'お座敷' }
-  ];
+const SEATS: SeatPreference[] = ['どこでも', 'カウンター', 'テーブル', 'お座敷'];
 
+const SeatSelector: React.FC<SeatSelectorProps> = ({ value, onChange }) => {
   return (
-    <div className="grid grid-cols-3 gap-2">
-      {options.map((option) => (
+    <div className="grid grid-cols-2 gap-2 mt-2">
+      {SEATS.map(seat => (
         <button
-          key={option.value}
-          type="button"
-          onClick={() => onChange(option.value)}
-          className={`py-2 px-4 rounded-lg border-2 font-medium ${
-            value === option.value
-              ? 'border-red-500 bg-red-50 text-red-600'
-              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+          key={seat}
+          onClick={() => onChange(seat)}
+          className={`py-3 px-4 rounded-xl font-bold transition-all border-2 ${
+            value === seat
+              ? 'bg-red-800 text-white border-red-900 shadow-inner'
+              : 'bg-white text-gray-700 border-gray-200 hover:border-red-300'
           }`}
         >
-          {option.label}
+          {seat}
         </button>
       ))}
     </div>
   );
 };
+
+export default SeatSelector;

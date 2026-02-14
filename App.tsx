@@ -1,82 +1,78 @@
-import React, { useState } from 'react';
-import { useQueueSystem } from './hooks/useQueueSystem';
-// { } を外してインポートします
-import CustomerView from './components/CustomerView';
-import AdminView from './components/AdminView';
-import { Users, LayoutDashboard, UtensilsCrossed } from 'lucide-react';
 
-function App() {
-  const [activeTab, setActiveTab] = useState<'customer' | 'admin'>('customer');
+import React, { useEffect, useState } from 'react';
+import { useQueueSystem } from './hooks/useQueueSystem';
+import AdminView from './components/AdminView';
+import ShopView from './components/ShopView';
+import CustomerView from './components/CustomerView';
+
+const App: React.FC = () => {
   const { 
     state, 
     registerGuest, 
     updateGuestStatus, 
     completeGuest, 
+    removeGuest,
     setAccepting,
-    removeGuest 
+    resetStats 
   } = useQueueSystem();
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ナビゲーション */}
-      <nav className="bg-white border-b mb-6 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between h-16">
-            <div className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab('customer')}
-                className={`flex items-center px-3 border-b-2 text-sm font-medium transition-colors ${
-                  activeTab === 'customer'
-                    ? 'border-red-500 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                お客様用画面
-              </button>
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex items-center px-3 border-b-2 text-sm font-medium transition-colors ${
-                  activeTab === 'admin'
-                    ? 'border-red-500 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4 mr-2" />
-                店側管理画面
-              </button>
-            </div>
-            <div className="flex items-center text-red-600 font-bold">
-              <UtensilsCrossed className="w-5 h-5 mr-2" />
-              <span>松乃木飯店 順番待ち</span>
-            </div>
-          </div>
-        </div>
-      </nav>
+  const [currentView, setCurrentView] = useState<'customer' | 'shop' | 'admin'>('customer');
 
-      {/* メインコンテンツ */}
-      <main className="max-w-7xl mx-auto px-4 pb-12">
-        {activeTab === 'customer' ? (
-          <CustomerView 
-            onSubmit={async (data: any) => {
-              await registerGuest(data);
-            }} 
-            isAccepting={state.isAccepting} 
-          />
-        ) : (
-          <AdminView
-            queue={state.queue}
-            stats={state.stats}
-            isAccepting={state.isAccepting}
-            onUpdateStatus={updateGuestStatus}
-            onComplete={completeGuest}
-            onToggleAccepting={() => setAccepting(!state.isAccepting)}
-            onRemove={removeGuest}
-          />
-        )}
-      </main>
+  useEffect(() => {
+    // 擬似的なハッシュルーティング
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#/shop') setCurrentView('shop');
+      else if (hash === '#/admin') setCurrentView('admin');
+      else setCurrentView('customer');
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // 初回チェック
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // 画面のナビゲーションバー（デモ用）
+  const renderNav = () => (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex bg-black/80 backdrop-blur text-white px-2 py-2 rounded-2xl gap-1 z-[100] shadow-2xl scale-90 md:scale-100">
+      <button 
+        onClick={() => window.location.hash = '/'} 
+        className={`px-4 py-2 rounded-xl text-sm font-bold ${currentView === 'customer' ? 'bg-red-800' : 'hover:bg-white/10'}`}
+      >
+        <i className="fa-solid fa-mobile-screen mr-2"></i> 顧客
+      </button>
+      <button 
+        onClick={() => window.location.hash = '/shop'} 
+        className={`px-4 py-2 rounded-xl text-sm font-bold ${currentView === 'shop' ? 'bg-red-800' : 'hover:bg-white/10'}`}
+      >
+        <i className="fa-solid fa-tablet-screen mr-2"></i> 店舗
+      </button>
+      <button 
+        onClick={() => window.location.hash = '/admin'} 
+        className={`px-4 py-2 rounded-xl text-sm font-bold ${currentView === 'admin' ? 'bg-red-800' : 'hover:bg-white/10'}`}
+      >
+        <i className="fa-solid fa-gear mr-2"></i> 管理
+      </button>
     </div>
   );
-}
+
+  return (
+    <div className="min-h-screen">
+      {currentView === 'customer' && <CustomerView state={state} onRegister={registerGuest} />}
+      {currentView === 'shop' && <ShopView state={state} onRegister={registerGuest} onUpdateStatus={updateGuestStatus} />}
+      {currentView === 'admin' && (
+        <AdminView 
+          state={state} 
+          onUpdateStatus={updateGuestStatus} 
+          onComplete={completeGuest}
+          onSetAccepting={setAccepting}
+          onResetStats={resetStats}
+        />
+      )}
+      {renderNav()}
+    </div>
+  );
+};
 
 export default App;
