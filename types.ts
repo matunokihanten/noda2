@@ -1,6 +1,6 @@
-
-export type GuestType = 'web' | 'shop';
-export type SeatPreference = 'どこでも' | 'カウンター' | 'テーブル' | 'お座敷';
+export type GuestStatus = 'waiting' | 'calling' | 'called' | 'arrived' | 'absent' | 'completed';
+export type GuestType = 'shop' | 'web';
+export type SeatPreference = 'any' | 'table' | 'counter';
 
 export interface Guest {
   displayId: string;
@@ -9,15 +9,9 @@ export interface Guest {
   children: number;
   infants: number;
   pref: SeatPreference;
-  status: 'waiting' | 'called' | 'arrived' | 'absent' | 'completed';
-  arrived: boolean;
-  called: boolean;
-  absent: boolean;
+  status: GuestStatus;
   time: string;
   timestamp: number;
-  calledTime?: string;
-  arrivedTime?: string;
-  absentTime?: string;
 }
 
 export interface Stats {
