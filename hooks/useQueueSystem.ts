@@ -1,27 +1,112 @@
-// 修正後のイメージ（抜粋）
-import { ref, onValue, set, push } from "firebase/database";
-import { db } from "../firebase"; // 初期設定したファイル
+import { useState, useEffect, useCallback } from 'react';
+import { Guest, AppState, GuestType, SeatPreference } from '../types';
+
+const STORAGE_KEY = 'matsunoki_queue_state';
+const LAST_DATE_KEY = 'matsunoki_last_date';
 
 export const useQueueSystem = () => {
-  const [state, setState] = useState<AppState>(initialState);
+  const [state, setState] = useState<AppState>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const lastDate = localStorage.getItem(LAST_DATE_KEY);
+    const today = new Date().toLocaleDateString('ja-JP');
 
-  // 💡 ここがポイント：データベースの更新を常に監視する
+    if (lastDate !== today) {
+      localStorage.setItem(LAST_DATE_KEY, today);
+      return {
+        queue: [],
+        stats: { totalToday: 0, completedToday: 0, averageWaitTime: 0 },
+        nextNumber: 1,
+        isAccepting: true,
+      };
+    }
+
+    return saved ? JSON.parse(saved) : {
+      queue: [],
+      stats: { totalToday: 0, completedToday: 0, averageWaitTime: 0 },
+      nextNumber: 1,
+      isAccepting: true,
+    };
+  });
+
   useEffect(() => {
-    const queueRef = ref(db, 'queue');
-    return onValue(queueRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        // データベースに新しい人が入ったら、自動で画面を更新する
-        setState(prev => ({ ...prev, queue: Object.values(data) }));
-      }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  const getJSTime = () => new Date().toLocaleTimeString('ja-JP', {
+    hour: '2-digit', minute: '2-digit'
+  });
+
+  const registerGuest = useCallback((data: { type: GuestType, adults: number, children: number, infants: number, pref: SeatPreference }) => {
+    const prefix = data.type === 'shop' ? 'S' : 'W';
+    const displayId = `${prefix}-${state.nextNumber}`;
+    const newGuest: Guest = {
+      displayId,
+      ...data,
+      status: 'waiting',
+      arrived: false,
+      called: false,
+      absent: false,
+      time: getJSTime(),
+      timestamp: Date.now(),
+    };
+
+    setState(prev => ({
+      ...prev,
+      queue: [...prev.queue, newGuest],
+      nextNumber: prev.nextNumber + 1,
+      stats: { ...prev.stats, totalToday: prev.stats.totalToday + 1 }
+    }));
+
+    return newGuest;
+  }, [state.nextNumber]);
+
+  const updateGuestStatus = useCallback((displayId: string, updates: Partial<Guest>) => {
+    setState(prev => ({
+      ...prev,
+      queue: prev.queue.map(g => g.displayId === displayId ? { ...g, ...updates } : g)
+    }));
+  }, []);
+
+  const completeGuest = useCallback((displayId: string) => {
+    setState(prev => {
+      const guest = prev.queue.find(g => g.displayId === displayId);
+      if (!guest) return prev;
+      const waitTime = (Date.now() - guest.timestamp) / 1000 / 60;
+      const newCompleted = prev.stats.completedToday + 1;
+      const newAvg = Math.round((prev.stats.averageWaitTime * prev.stats.completedToday + waitTime) / newCompleted);
+      return {
+        ...prev,
+        queue: prev.queue.filter(g => g.displayId !== displayId),
+        stats: { ...prev.stats, completedToday: newCompleted, averageWaitTime: newAvg }
+      };
     });
   }, []);
 
-  const registerGuest = useCallback((data) => {
-    const queueRef = ref(db, 'queue');
-    // 💡 localStorage ではなく、インターネット上の DB に保存する
-    push(queueRef, newGuest); 
+  const removeGuest = useCallback((displayId: string) => {
+    setState(prev => ({
+      ...prev,
+      queue: prev.queue.filter(g => g.displayId !== displayId)
+    }));
   }, []);
-  
-  // ...他も同様に DB を操作するように書き換える
-}
+
+  const setAccepting = useCallback((status: boolean) => {
+    setState(prev => ({ ...prev, isAccepting: status }));
+  }, []);
+
+  const resetStats = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      stats: { totalToday: 0, completedToday: 0, averageWaitTime: 0 }
+    }));
+  }, []);
+
+  return {
+    state,
+    registerGuest,
+    updateGuestStatus,
+    completeGuest,
+    removeGuest,
+    setAccepting,
+    resetStats
+  };
+};
