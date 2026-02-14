@@ -1,32 +1,15 @@
-
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>松乃木飯店 受付システム</title>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>松乃木飯店 - 順番待ちシステム</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @keyframes pulse-orange {
-            0%, 100% { background-color: rgba(251, 146, 60, 0.1); }
-            50% { background-color: rgba(251, 146, 60, 0.3); }
-        }
-        .animate-pulse-orange {
-            animation: pulse-orange 2s infinite;
-        }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4"
-  }
-}
-</script>
-</head>
-<body class="bg-gray-50 text-gray-900">
+  </head>
+  <body>
     <div id="root"></div>
-</body>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
