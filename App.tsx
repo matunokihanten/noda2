@@ -1,52 +1,82 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useQueueSystem } from './hooks/useQueueSystem';
-import AdminView from './components/AdminView';
-import ShopView from './components/ShopView';
-import CustomerView from './components/CustomerView';
+import { CustomerView } from './components/CustomerView';
+import { AdminView } from './components/AdminView';
+import { Layout } from './components/Layout';
+import { Users, LayoutDashboard, UtensilsCrossed } from 'lucide-react';
 
-const App: React.FC = () => {
+function App() {
+  const [activeTab, setActiveTab] = useState<'customer' | 'admin'>('customer');
   const { 
     state, 
     registerGuest, 
     updateGuestStatus, 
     completeGuest, 
-    removeGuest,
     setAccepting,
-    resetStats 
+    removeGuest 
   } = useQueueSystem();
 
-  const [currentView, setCurrentView] = useState<'customer' | 'shop' | 'admin'>('customer');
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash === '#/shop') setCurrentView('shop');
-      else if (hash === '#/admin') setCurrentView('admin');
-      else setCurrentView('customer');
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange();
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
   return (
-    <div className="min-h-screen">
-      {currentView === 'customer' && <CustomerView state={state} onRegister={registerGuest} />}
-      {currentView === 'shop' && <ShopView state={state} onRegister={registerGuest} onUpdateStatus={updateGuestStatus} />}
-      {currentView === 'admin' && (
-        <AdminView 
-          state={state} 
-          onUpdateStatus={updateGuestStatus} 
-          onComplete={completeGuest}
-          onSetAccepting={setAccepting}
-          onResetStats={resetStats}
-        />
-      )}
-      {/* ナビゲーションバー（renderNav）を削除しました */}
-    </div>
+    <Layout>
+      {/* ナビゲーション */}
+      <nav className="bg-white border-b mb-6">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex justify-between h-16">
+            <div className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('customer')}
+                className={`flex items-center px-3 border-b-2 text-sm font-medium ${
+                  activeTab === 'customer'
+                    ? 'border-red-500 text-red-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                お客様用画面
+              </button>
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex items-center px-3 border-b-2 text-sm font-medium ${
+                  activeTab === 'admin'
+                    ? 'border-red-500 text-red-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                店側管理画面
+              </button>
+            </div>
+            <div className="flex items-center text-red-600 font-bold">
+              <UtensilsCrossed className="w-5 h-5 mr-2" />
+              <span>松乃木飯店 順番待ち</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* メインコンテンツ */}
+      <main className="max-w-7xl mx-auto px-4 pb-12">
+        {activeTab === 'customer' ? (
+          <CustomerView 
+            onSubmit={async (data) => {
+              await registerGuest(data);
+            }} 
+            isAccepting={state.isAccepting} 
+          />
+        ) : (
+          <AdminView
+            queue={state.queue}
+            stats={state.stats}
+            isAccepting={state.isAccepting}
+            onUpdateStatus={updateGuestStatus}
+            onComplete={completeGuest}
+            onToggleAccepting={() => setAccepting(!state.isAccepting)}
+            onRemove={removeGuest}
+          />
+        )}
+      </main>
+    </Layout>
   );
-};
+}
 
 export default App;
